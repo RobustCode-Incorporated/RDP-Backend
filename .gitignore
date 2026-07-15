@@ -1,0 +1,18 @@
+# Build outputs
+/target/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+
+# Local env overrides
+.env
+.env.*
+!.env.render.example
