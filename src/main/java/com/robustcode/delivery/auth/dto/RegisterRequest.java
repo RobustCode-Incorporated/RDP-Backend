@@ -23,6 +23,12 @@ public record RegisterRequest(
         @NotBlank(message = "Last name is required")
         String lastName,
 
+        String phoneNumber,
+
+        String vehicleType,
+
+        String vehiclePlate,
+
         @NotNull(message = "Role is required")
         User.Role role
 
