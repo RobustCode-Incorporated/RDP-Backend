@@ -46,3 +46,24 @@ Use Maven-based commands on Render:
 
 Required environment variables are documented in `.env.render.example` and wired in `render.yaml`.
 
+### Render deployment with Docker
+
+If Render only offers `Docker` and `Node`, choose `Docker` for this backend.
+
+This repository includes a ready-to-use `Dockerfile` that:
+- builds with Maven + Java 21;
+- packages the Spring Boot jar;
+- runs with profile `neon`.
+
+Render settings for Docker mode:
+- Root Directory: repository root (`/`)
+- Dockerfile Path: `./Dockerfile`
+- No build command needed (Dockerfile handles build)
+- No start command needed (Dockerfile entrypoint handles start)
+
+Required environment variables on Render:
+- `NEON_JDBC_URL`
+- `NEON_DB_USERNAME`
+- `NEON_DB_PASSWORD`
+- `APP_CORS_ALLOWED_ORIGINS`
+
