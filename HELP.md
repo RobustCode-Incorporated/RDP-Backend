@@ -35,3 +35,14 @@ While most of the inheritance is fine, it also inherits unwanted elements like `
 To prevent this, the project POM contains empty overrides for these elements.
 If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
 
+### Render deployment note
+
+This backend is a Java/Spring Boot service. It does not need a `package.json`.
+
+Use Maven-based commands on Render:
+
+- Build command: `mvn clean package -DskipTests`
+- Start command: `java -Dspring.profiles.active=neon -jar target/robust-delivery-platform-0.0.1-SNAPSHOT.jar`
+
+Required environment variables are documented in `.env.render.example` and wired in `render.yaml`.
+
