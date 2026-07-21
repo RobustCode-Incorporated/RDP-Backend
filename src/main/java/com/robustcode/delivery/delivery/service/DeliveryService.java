@@ -1,24 +1,31 @@
 package com.robustcode.delivery.delivery.service;
 
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
 import com.robustcode.delivery.delivery.domain.Delivery;
 import com.robustcode.delivery.delivery.dto.CreateDeliveryRequest;
 import com.robustcode.delivery.delivery.repository.DeliveryRepository;
-import com.robustcode.delivery.user.domain.User;
-import com.robustcode.delivery.user.repository.UserRepository;
 import com.robustcode.delivery.driver.domain.Driver;
 import com.robustcode.delivery.driver.repository.DriverRepository;
 import com.robustcode.delivery.restaurant.domain.Restaurant;
 import com.robustcode.delivery.restaurant.repository.RestaurantRepository;
+import com.robustcode.delivery.user.domain.User;
+import com.robustcode.delivery.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class DeliveryService {
+
+    private static final Set<Delivery.Status> ACTIVE_DRIVER_STATUSES = Set.of(
+            Delivery.Status.ASSIGNED,
+            Delivery.Status.PICKED_UP,
+            Delivery.Status.IN_TRANSIT
+    );
 
     private final DeliveryRepository repository;
     private final UserRepository userRepository;
@@ -38,7 +45,27 @@ public class DeliveryService {
             throw new RuntimeException("No driver profile assigned to user");
         }
 
-        return repository.findByDriver(user.getDriver());
+        Driver driver = user.getDriver();
+        List<Delivery> deliveries = repository.findByDriver(driver);
+
+        syncDriverAvailability(driver, deliveries);
+
+        return deliveries;
+    }
+
+    private void syncDriverAvailability(Driver driver, List<Delivery> deliveries) {
+
+        Driver.AvailabilityStatus nextStatus = deliveries.stream()
+                .anyMatch(delivery -> ACTIVE_DRIVER_STATUSES.contains(delivery.getStatus()))
+                        ? Driver.AvailabilityStatus.BUSY
+                        : Driver.AvailabilityStatus.AVAILABLE;
+
+        if (driver.getAvailabilityStatus() == nextStatus) {
+            return;
+        }
+
+        driver.setAvailabilityStatus(nextStatus);
+        driverRepository.save(driver);
     }
 
     public Delivery findById(Long id) {
