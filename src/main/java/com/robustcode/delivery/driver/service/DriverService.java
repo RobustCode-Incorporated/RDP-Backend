@@ -1,12 +1,14 @@
 package com.robustcode.delivery.driver.service;
 
 
+import java.math.BigDecimal;
 import java.util.List;
 
 
 import com.robustcode.delivery.driver.domain.Driver;
 import com.robustcode.delivery.driver.dto.CreateDriverRequest;
 import com.robustcode.delivery.driver.dto.DriverResponse;
+import com.robustcode.delivery.driver.dto.UpdateDriverLocationRequest;
 import com.robustcode.delivery.driver.repository.DriverRepository;
 
 import com.robustcode.delivery.user.domain.User;
@@ -35,6 +37,47 @@ public class DriverService {
     private final UserRepository userRepository;
 
     private final VehicleRepository vehicleRepository;
+
+
+
+    public DriverResponse updateMyLocation(
+            String email,
+            UpdateDriverLocationRequest request
+    ) {
+
+        User user = userRepository.findByEmail(email)
+
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "User not found"
+                        )
+                );
+
+
+
+        if (user.getDriver() == null) {
+
+            throw new RuntimeException(
+                    "No driver profile assigned to user"
+            );
+
+        }
+
+        Driver driver = user.getDriver();
+
+        driver.setCurrentLatitude(scaleCoordinate(request.latitude()));
+        driver.setCurrentLongitude(scaleCoordinate(request.longitude()));
+
+        Driver savedDriver = driverRepository.save(driver);
+
+        return mapToResponse(savedDriver);
+    }
+
+
+
+    private BigDecimal scaleCoordinate(BigDecimal value) {
+        return value.setScale(7, java.math.RoundingMode.HALF_UP);
+    }
 
 
 
@@ -219,6 +262,12 @@ public class DriverService {
                 driver.getVehiclePlate(),
 
                 driver.getAvailabilityStatus()
+
+                ,
+
+                driver.getCurrentLatitude(),
+
+                driver.getCurrentLongitude()
 
         );
 

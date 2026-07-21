@@ -1,6 +1,8 @@
 package com.robustcode.delivery.driver.dto;
 
 
+import java.math.BigDecimal;
+
 import com.robustcode.delivery.driver.domain.Driver;
 
 
@@ -32,7 +34,13 @@ public record DriverResponse(
         String vehiclePlate,
 
 
-        Driver.AvailabilityStatus availabilityStatus
+        Driver.AvailabilityStatus availabilityStatus,
+
+
+        BigDecimal currentLatitude,
+
+
+        BigDecimal currentLongitude
 
 
 ) {}

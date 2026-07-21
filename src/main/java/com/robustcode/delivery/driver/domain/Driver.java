@@ -1,6 +1,7 @@
 package com.robustcode.delivery.driver.domain;
 
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 
@@ -116,6 +117,18 @@ public class Driver {
     )
     private AvailabilityStatus availabilityStatus =
             AvailabilityStatus.OFFLINE;
+
+
+
+
+        @Column(name = "current_latitude", precision = 10, scale = 7)
+        private BigDecimal currentLatitude;
+
+
+
+
+        @Column(name = "current_longitude", precision = 10, scale = 7)
+        private BigDecimal currentLongitude;
 
 
 

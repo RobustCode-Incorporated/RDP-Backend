@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.robustcode.delivery.driver.dto.CreateDriverRequest;
 import com.robustcode.delivery.driver.dto.DriverResponse;
+import com.robustcode.delivery.driver.dto.UpdateDriverLocationRequest;
 import com.robustcode.delivery.driver.service.DriverService;
 
 import jakarta.validation.Valid;
@@ -63,6 +64,22 @@ public class DriverController {
 
         return driverService.findMyDriver(
                 authentication.getName()
+        );
+
+    }
+
+
+
+    @PreAuthorize("hasRole('DRIVER')")
+    @PatchMapping("/me/location")
+    public DriverResponse updateMyLocation(
+            Authentication authentication,
+            @Valid @RequestBody UpdateDriverLocationRequest request
+    ) {
+
+        return driverService.updateMyLocation(
+                authentication.getName(),
+                request
         );
 
     }
