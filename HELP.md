@@ -1,0 +1,69 @@
+# Getting Started
+
+### Reference Documentation
+For further reference, please consider the following sections:
+
+* [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
+* [Spring Boot Maven Plugin Reference Guide](https://docs.spring.io/spring-boot/3.5.16/maven-plugin)
+* [Create an OCI image](https://docs.spring.io/spring-boot/3.5.16/maven-plugin/build-image.html)
+* [Spring Web](https://docs.spring.io/spring-boot/3.5.16/reference/web/servlet.html)
+* [Spring Data JPA](https://docs.spring.io/spring-boot/3.5.16/reference/data/sql.html#data.sql.jpa-and-spring-data)
+* [Validation](https://docs.spring.io/spring-boot/3.5.16/reference/io/validation.html)
+* [Spring Security](https://docs.spring.io/spring-boot/3.5.16/reference/web/spring-security.html)
+* [Flyway Migration](https://docs.spring.io/spring-boot/3.5.16/how-to/data-initialization.html#howto.data-initialization.migration-tool.flyway)
+* [Spring Boot DevTools](https://docs.spring.io/spring-boot/3.5.16/reference/using/devtools.html)
+* [Spring Boot Actuator](https://docs.spring.io/spring-boot/3.5.16/reference/actuator/index.html)
+
+### Guides
+The following guides illustrate how to use some features concretely:
+
+* [Building a RESTful Web Service](https://spring.io/guides/gs/rest-service/)
+* [Serving Web Content with Spring MVC](https://spring.io/guides/gs/serving-web-content/)
+* [Building REST services with Spring](https://spring.io/guides/tutorials/rest/)
+* [Accessing Data with JPA](https://spring.io/guides/gs/accessing-data-jpa/)
+* [Validation](https://spring.io/guides/gs/validating-form-input/)
+* [Securing a Web Application](https://spring.io/guides/gs/securing-web/)
+* [Spring Boot and OAuth2](https://spring.io/guides/tutorials/spring-boot-oauth2/)
+* [Authenticating a User with LDAP](https://spring.io/guides/gs/authenticating-ldap/)
+* [Accessing data with MySQL](https://spring.io/guides/gs/accessing-data-mysql/)
+* [Building a RESTful Web Service with Spring Boot Actuator](https://spring.io/guides/gs/actuator-service/)
+
+### Maven Parent overrides
+
+Due to Maven's design, elements are inherited from the parent POM to the project POM.
+While most of the inheritance is fine, it also inherits unwanted elements like `<license>` and `<developers>` from the parent.
+To prevent this, the project POM contains empty overrides for these elements.
+If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
+
+### Render deployment note
+
+This backend is a Java/Spring Boot service. It does not need a `package.json`.
+
+Use Maven-based commands on Render:
+
+- Build command: `mvn clean package -DskipTests`
+- Start command: `java -Dspring.profiles.active=neon -jar target/robust-delivery-platform-0.0.1-SNAPSHOT.jar`
+
+Required environment variables are documented in `.env.render.example` and wired in `render.yaml`.
+
+### Render deployment with Docker
+
+If Render only offers `Docker` and `Node`, choose `Docker` for this backend.
+
+This repository includes a ready-to-use `Dockerfile` that:
+- builds with Maven + Java 21;
+- packages the Spring Boot jar;
+- runs with profile `neon`.
+
+Render settings for Docker mode:
+- Root Directory: repository root (`/`)
+- Dockerfile Path: `./Dockerfile`
+- No build command needed (Dockerfile handles build)
+- No start command needed (Dockerfile entrypoint handles start)
+
+Required environment variables on Render:
+- `NEON_JDBC_URL`
+- `NEON_DB_USERNAME`
+- `NEON_DB_PASSWORD`
+- `APP_CORS_ALLOWED_ORIGINS`
+
