@@ -10,7 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.test.context.support.WithMockUser;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import org.springframework.boot.test.mock.mockito.MockBean;
 
@@ -23,12 +24,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 
-@WebMvcTest(UserController.class)
+/**
+ * Runs with the full security configuration (the previous @WebMvcTest slice
+ * could not start because the JWT filter needs JwtService and the user store).
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
 class UserControllerTest {
 
 
@@ -44,20 +49,20 @@ class UserControllerTest {
     private UserService userService;
 
 
+    private final CreateUserRequest request =
+            new CreateUserRequest(
+                    "driver@test.com",
+                    "password123",
+                    "John",
+                    "Driver",
+                    User.Role.DRIVER
+            );
+
+
 
     @Test
-    @WithMockUser
-    void shouldCreateUser() throws Exception {
-
-
-        CreateUserRequest request =
-                new CreateUserRequest(
-                        "driver@test.com",
-                        "password",
-                        "John",
-                        "Driver",
-                        User.Role.DRIVER
-                );
+    @WithMockUser(roles = "ADMIN")
+    void adminCanCreateUser() throws Exception {
 
 
         User user =
@@ -78,7 +83,6 @@ class UserControllerTest {
 
         mockMvc.perform(
                 post("/api/users")
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
         )
@@ -90,6 +94,37 @@ class UserControllerTest {
 
         .andExpect(jsonPath("$.role")
                 .value("DRIVER"));
+
+    }
+
+
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void nonAdminCannotCreateUser() throws Exception {
+
+        mockMvc.perform(
+                post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        )
+
+        .andExpect(status().isForbidden());
+
+    }
+
+
+
+    @Test
+    void anonymousCannotCreateUser() throws Exception {
+
+        mockMvc.perform(
+                post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        )
+
+        .andExpect(status().isUnauthorized());
 
     }
 
