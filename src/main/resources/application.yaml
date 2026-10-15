@@ -23,6 +23,11 @@ server:
 app:
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  jwt:
+    # LOCAL DEVELOPMENT ONLY. The neon profile overrides this with ${JWT_SECRET}
+    # and refuses to start with this value (prefix "dev-insecure-").
+    secret: ${JWT_SECRET:dev-insecure-local-only-jwt-secret-change-me-0123456789}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 logging:
   level:

@@ -1,10 +1,9 @@
-
-
 package com.robustcode.delivery.security;
 
 import java.io.IOException;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -13,12 +12,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.robustcode.delivery.user.service.UserDetailsServiceImpl;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Authenticates requests carrying a valid "Bearer" JWT.
+ *
+ * <p>Invalid, expired or unknown-user tokens never raise an error here: the
+ * request simply continues unauthenticated, and Spring Security answers 401
+ * through the configured authentication entry point if the endpoint is
+ * protected.</p>
+ */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -42,35 +52,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String jwt = authHeader.substring(7);
 
-        String userEmail;
-
         try {
-            userEmail = jwtService.extractUsername(jwt);
-        } catch (Exception exception) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+            String userEmail = jwtService.extractUsername(jwt);
 
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-            UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
+                if (userDetails.isEnabled()) {
+                    UsernamePasswordAuthenticationToken authenticationToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+
+                    authenticationToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
                     );
 
-            authenticationToken.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            );
-
-            System.out.println("JWT USER = " + userEmail);
-            System.out.println("AUTHORITIES = " + userDetails.getAuthorities());
-
-            SecurityContextHolder.getContext()
-                    .setAuthentication(authenticationToken);
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authenticationToken);
+                }
+            }
+        } catch (JwtException | IllegalArgumentException | AuthenticationException exception) {
+            log.debug("Rejected JWT: {}", exception.getClass().getSimpleName());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
