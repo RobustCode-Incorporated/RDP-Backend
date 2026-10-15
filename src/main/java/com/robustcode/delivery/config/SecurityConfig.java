@@ -99,33 +99,25 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/restaurants").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/restaurants/*/deliveries", "/api/restaurants/*/deliveries/status").hasAnyRole("ADMIN", "RESTAURANT")
                         .requestMatchers(HttpMethod.GET, "/api/restaurants/*").hasAnyRole("ADMIN", "RESTAURANT")
+                        .requestMatchers(HttpMethod.PATCH, "/api/restaurants/*").hasRole("ADMIN")
 
                         // Vehicles
                         .requestMatchers(HttpMethod.POST, "/api/vehicles").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/vehicles").hasAnyRole("ADMIN", "DISPATCHER")
 
                         // Drivers
-                        .requestMatchers(HttpMethod.GET, "/api/drivers").hasAnyRole("ADMIN", "DISPATCHER")
+                        .requestMatchers(HttpMethod.GET, "/api/drivers", "/api/drivers/available").hasAnyRole("ADMIN", "DISPATCHER")
                         .requestMatchers(HttpMethod.POST, "/api/drivers").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/drivers/me").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.PATCH, "/api/drivers/me/location").hasRole("DRIVER")
 
                         // Deliveries
                         .requestMatchers(HttpMethod.GET, "/api/deliveries/me").hasRole("DRIVER")
-                        .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/*").hasAnyRole("ADMIN", "DISPATCHER", "RESTAURANT", "DRIVER")
+                        .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/*", "/api/deliveries/*/history").hasAnyRole("ADMIN", "DISPATCHER", "RESTAURANT", "DRIVER")
                         .requestMatchers(HttpMethod.POST, "/api/deliveries").hasAnyRole("ADMIN", "DISPATCHER", "RESTAURANT")
                         .requestMatchers(HttpMethod.PUT, "/api/deliveries/*/assign").hasAnyRole("ADMIN", "DISPATCHER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/deliveries/*/ready", "/api/deliveries/*/cancel").hasAnyRole("ADMIN", "RESTAURANT")
                         .requestMatchers(HttpMethod.PUT, "/api/deliveries/*/pickup", "/api/deliveries/*/start", "/api/deliveries/*/complete", "/api/deliveries/*/fail").hasRole("DRIVER")
-
-                        // Orders
-                        .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("CUSTOMER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/my-orders").hasRole("CUSTOMER")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/restaurant").hasRole("RESTAURANT")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/*/history").hasAnyRole("ADMIN", "RESTAURANT", "DRIVER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/accept", "/api/orders/*/prepare", "/api/orders/*/ready").hasRole("RESTAURANT")
-                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/pickup", "/api/orders/*/deliver").hasRole("DRIVER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/assign-driver/*").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("ADMIN")
 
                         .anyRequest().denyAll()
                 )

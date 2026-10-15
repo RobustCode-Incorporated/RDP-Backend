@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.math.BigDecimal;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -25,12 +24,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.robustcode.delivery.delivery.domain.Delivery;
 import com.robustcode.delivery.delivery.repository.DeliveryRepository;
+import com.robustcode.delivery.delivery.repository.DeliveryStatusHistoryRepository;
 import com.robustcode.delivery.driver.domain.Driver;
 import com.robustcode.delivery.driver.repository.DriverRepository;
-import com.robustcode.delivery.order.domain.Order;
-import com.robustcode.delivery.order.domain.OrderStatusHistory;
-import com.robustcode.delivery.order.repository.OrderRepository;
-import com.robustcode.delivery.order.repository.OrderStatusHistoryRepository;
 import com.robustcode.delivery.restaurant.domain.Restaurant;
 import com.robustcode.delivery.restaurant.repository.RestaurantRepository;
 import com.robustcode.delivery.user.domain.User;
@@ -55,20 +51,16 @@ class SecurityIntegrationTest {
     @Autowired private DriverRepository driverRepository;
     @Autowired private VehicleRepository vehicleRepository;
     @Autowired private DeliveryRepository deliveryRepository;
-    @Autowired private OrderRepository orderRepository;
-    @Autowired private OrderStatusHistoryRepository historyRepository;
+    @Autowired private DeliveryStatusHistoryRepository historyRepository;
 
     private Restaurant restaurantA;
     private Restaurant restaurantB;
     private Delivery deliveryA;
     private Delivery deliveryB;
-    private Order orderA;
-    private Order orderB;
 
     @BeforeEach
     void setUp() {
         historyRepository.deleteAll();
-        orderRepository.deleteAll();
         deliveryRepository.deleteAll();
         driverRepository.deleteAll();
         vehicleRepository.deleteAll();
@@ -82,7 +74,7 @@ class SecurityIntegrationTest {
         userRepository.save(user("dispatcher@rdp.test", User.Role.DISPATCHER, null));
         userRepository.save(user("owner-a@rdp.test", User.Role.RESTAURANT, restaurantA));
         userRepository.save(user("owner-b@rdp.test", User.Role.RESTAURANT, restaurantB));
-        User customer = userRepository.save(user("customer@rdp.test", User.Role.CUSTOMER, null));
+        userRepository.save(user("customer@rdp.test", User.Role.CUSTOMER, null));
         User driverUser = userRepository.save(user("driver@rdp.test", User.Role.DRIVER, null));
         userRepository.save(user("other-driver@rdp.test", User.Role.DRIVER, null));
 
@@ -99,14 +91,8 @@ class SecurityIntegrationTest {
                 .availabilityStatus(Driver.AvailabilityStatus.AVAILABLE)
                 .build());
 
-        deliveryA = deliveryRepository.save(delivery(customer, restaurantA, driver));
-        deliveryB = deliveryRepository.save(delivery(customer, restaurantB, null));
-
-        orderA = orderRepository.save(order(customer, restaurantA, driver));
-        orderB = orderRepository.save(order(customer, restaurantB, null));
-
-        historyRepository.save(history(orderA));
-        historyRepository.save(history(orderB));
+        deliveryA = deliveryRepository.save(delivery(restaurantA, driver));
+        deliveryB = deliveryRepository.save(delivery(restaurantB, null));
     }
 
     // ---------------------------------------------------------------- auth
@@ -332,7 +318,7 @@ class SecurityIntegrationTest {
                 .andExpect(jsonPath("$.status").value(403));
 
         mockMvc.perform(get("/api/restaurants/{id}/deliveries/status", restaurantB.getId())
-                        .param("status", "PENDING")
+                        .param("status", "CREATED")
                         .header("Authorization", bearer(tokenA)))
                 .andExpect(status().isForbidden());
 
@@ -352,44 +338,6 @@ class SecurityIntegrationTest {
 
         mockMvc.perform(get("/api/restaurants/{id}/deliveries", restaurantA.getId())
                         .header("Authorization", bearer(login("customer@rdp.test"))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void restaurantCannotReadAnotherRestaurantsOrderHistory() throws Exception {
-        String tokenA = login("owner-a@rdp.test");
-
-        mockMvc.perform(get("/api/orders/{id}/history", orderB.getId())
-                        .header("Authorization", bearer(tokenA)))
-                .andExpect(status().isForbidden());
-
-        mockMvc.perform(get("/api/orders/{id}/history", orderA.getId())
-                        .header("Authorization", bearer(tokenA)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)));
-
-        mockMvc.perform(get("/api/orders/{id}/history", orderB.getId())
-                        .header("Authorization", bearer(login("admin@rdp.test"))))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/orders/{id}/history", 999_999L)
-                        .header("Authorization", bearer(login("admin@rdp.test"))))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Order not found"));
-    }
-
-    @Test
-    void driverSeesOnlyAssignedOrderHistory() throws Exception {
-        mockMvc.perform(get("/api/orders/{id}/history", orderA.getId())
-                        .header("Authorization", bearer(login("driver@rdp.test"))))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/orders/{id}/history", orderB.getId())
-                        .header("Authorization", bearer(login("driver@rdp.test"))))
-                .andExpect(status().isForbidden());
-
-        mockMvc.perform(get("/api/orders/{id}/history", orderA.getId())
-                        .header("Authorization", bearer(login("other-driver@rdp.test"))))
                 .andExpect(status().isForbidden());
     }
 
@@ -444,25 +392,32 @@ class SecurityIntegrationTest {
 
     @Test
     void restaurantCanCreateDeliveriesOnlyForItself() throws Exception {
-        long customerId = userRepository.findByEmail("customer@rdp.test").orElseThrow().getId();
         String tokenA = login("owner-a@rdp.test");
 
+        // restaurantId in the body is ignored for a RESTAURANT user
         mockMvc.perform(post("/api/deliveries")
                         .header("Authorization", bearer(tokenA))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(deliveryBody(customerId, restaurantB.getId())))
-                .andExpect(status().isForbidden());
-
-        mockMvc.perform(post("/api/deliveries")
-                        .header("Authorization", bearer(tokenA))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(deliveryBody(customerId, restaurantA.getId())))
-                .andExpect(status().isOk());
+                        .content(deliveryBody(restaurantB.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.restaurant.id").value(restaurantA.getId()));
 
         mockMvc.perform(post("/api/deliveries")
                         .header("Authorization", bearer(login("driver@rdp.test")))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(deliveryBody(customerId, restaurantA.getId())))
+                        .content(deliveryBody(restaurantA.getId())))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/deliveries")
+                        .header("Authorization", bearer(login("customer@rdp.test")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(deliveryBody(restaurantA.getId())))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ordersApiIsGone() throws Exception {
+        mockMvc.perform(get("/api/orders").header("Authorization", bearer(login("admin@rdp.test"))))
                 .andExpect(status().isForbidden());
     }
 
@@ -510,12 +465,13 @@ class SecurityIntegrationTest {
                 "role", role));
     }
 
-    private String deliveryBody(long customerId, long restaurantId) throws Exception {
+    private String deliveryBody(long restaurantId) throws Exception {
         return objectMapper.writeValueAsString(Map.of(
-                "customerId", customerId,
                 "restaurantId", restaurantId,
-                "pickupAddress", "Pickup 1",
-                "deliveryAddress", "Dropoff 1"));
+                "customerName", "Awa Diop",
+                "customerPhone", "+32 470 12 34 56",
+                "deliveryAddress", "Dropoff 1",
+                "paymentMode", "PREPAID"));
     }
 
     private User user(String email, User.Role role, Restaurant restaurant) {
@@ -539,33 +495,16 @@ class SecurityIntegrationTest {
                 .build();
     }
 
-    private static Delivery delivery(User customer, Restaurant restaurant, Driver driver) {
+    private static Delivery delivery(Restaurant restaurant, Driver driver) {
         return Delivery.builder()
-                .customer(customer)
                 .restaurant(restaurant)
                 .driver(driver)
-                .status(driver == null ? Delivery.Status.PENDING : Delivery.Status.ASSIGNED)
+                .status(driver == null ? Delivery.Status.CREATED : Delivery.Status.ASSIGNED)
+                .customerName("Customer")
+                .customerPhone("+32 470 00 00 00")
+                .paymentMode(Delivery.PaymentMode.PREPAID)
                 .pickupAddress("Pickup")
                 .deliveryAddress("Dropoff")
-                .build();
-    }
-
-    private static Order order(User customer, Restaurant restaurant, Driver driver) {
-        return Order.builder()
-                .customer(customer)
-                .restaurant(restaurant)
-                .driver(driver)
-                .status(Order.Status.PENDING)
-                .totalPrice(new BigDecimal("12.50"))
-                .deliveryAddress("Dropoff")
-                .build();
-    }
-
-    private static OrderStatusHistory history(Order order) {
-        return OrderStatusHistory.builder()
-                .order(order)
-                .newStatus(Order.Status.PENDING)
-                .changedBy("test")
                 .build();
     }
 }
