@@ -14,6 +14,7 @@ import com.robustcode.delivery.restaurant.domain.Restaurant;
 import com.robustcode.delivery.restaurant.dto.CreateRestaurantRequest;
 import com.robustcode.delivery.restaurant.dto.RestaurantResponse;
 import com.robustcode.delivery.restaurant.repository.RestaurantRepository;
+import com.robustcode.delivery.security.AccessGuard;
 import com.robustcode.delivery.user.domain.User;
 import com.robustcode.delivery.user.repository.UserRepository;
 
@@ -29,6 +30,8 @@ public class RestaurantService {
     private final RestaurantRepository repository;
 
     private final UserRepository userRepository;
+
+    private final AccessGuard accessGuard;
 
 
 
@@ -90,7 +93,13 @@ public class RestaurantService {
 
 
 
-    public RestaurantResponse findById(Long id){
+    /**
+     * ADMIN sees any restaurant; RESTAURANT only its own.
+     */
+    @Transactional(readOnly = true)
+    public RestaurantResponse findById(Long id, String email){
+
+        accessGuard.checkRestaurantAccess(accessGuard.requireUser(email), id);
 
         Restaurant restaurant = repository.findById(id)
 

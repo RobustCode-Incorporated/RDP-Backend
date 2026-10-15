@@ -84,17 +84,22 @@ public class OrderController {
     }
 
 
-        /**
-         * RESTAURANT, DRIVER and ADMIN inspect the order status history
-         */
-        @GetMapping("/{id}/history")
-        public List<OrderStatusHistoryResponse> getOrderHistory(
-                        @PathVariable Long id
-        ){
+    /**
+     * ADMIN (any order), RESTAURANT (own restaurant's orders) and
+     * DRIVER (assigned orders) inspect the order status history
+     */
+    @GetMapping("/{id}/history")
+    public List<OrderStatusHistoryResponse> getOrderHistory(
+            @PathVariable Long id,
+            Authentication authentication
+    ){
 
-                return orderService.getOrderStatusHistory(id);
+        return orderService.getOrderStatusHistory(
+                id,
+                authentication.getName()
+        );
 
-        }
+    }
 
 
     /**

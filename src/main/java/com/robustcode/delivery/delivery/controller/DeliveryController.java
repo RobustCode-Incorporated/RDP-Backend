@@ -26,10 +26,15 @@ public class DeliveryController {
     private final DeliveryService service;
 
 
+    /**
+     * ADMIN/DISPATCHER: all deliveries. RESTAURANT: its own. DRIVER: assigned.
+     */
     @GetMapping
-    public List<Delivery> getAll(){
+    public List<Delivery> getAll(
+            Authentication authentication
+    ){
 
-        return service.findAll();
+        return service.findAllVisibleTo(authentication.getName());
 
     }
 
@@ -46,18 +51,20 @@ public class DeliveryController {
 
     @GetMapping("/{id}")
     public Delivery getById(
-            @PathVariable Long id){
+            @PathVariable Long id,
+            Authentication authentication){
 
-        return service.findById(id);
+        return service.findByIdVisibleTo(id, authentication.getName());
 
     }
 
 
     @PostMapping
     public Delivery create(
-            @Valid @RequestBody CreateDeliveryRequest request){
+            @Valid @RequestBody CreateDeliveryRequest request,
+            Authentication authentication){
 
-        return service.create(request);
+        return service.create(request, authentication.getName());
 
     }
 
@@ -65,7 +72,7 @@ public class DeliveryController {
     @PutMapping("/{id}/assign")
     public Delivery assignDriver(
             @PathVariable Long id,
-            @RequestBody AssignDriverRequest request){
+            @Valid @RequestBody AssignDriverRequest request){
 
         return service.assignDriver(
                 id,

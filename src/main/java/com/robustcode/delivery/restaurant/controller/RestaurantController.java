@@ -26,7 +26,7 @@ public class RestaurantController {
 
 
 
-    @PreAuthorize("hasAnyRole('ADMIN','RESTAURANT')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RestaurantResponse create(
@@ -64,10 +64,11 @@ public class RestaurantController {
     @PreAuthorize("hasAnyRole('ADMIN','RESTAURANT')")
     @GetMapping("/{id}")
     public RestaurantResponse findById(
-            @PathVariable Long id
+            @PathVariable Long id,
+            Authentication authentication
     ){
 
-        return service.findById(id);
+        return service.findById(id, authentication.getName());
 
     }
 

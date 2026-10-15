@@ -34,6 +34,15 @@ app:
     secret: ${JWT_SECRET:dev-insecure-local-only-jwt-secret-change-me-0123456789}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
 logging:
   level:
     org.flywaydb.core.internal.database.base.Database: ERROR

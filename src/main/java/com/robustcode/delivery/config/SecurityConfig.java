@@ -75,27 +75,59 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler)
                 )
+                // Deny by default: every endpoint must be listed explicitly.
+                // Object-level ownership (own restaurant / assigned driver) is
+                // enforced in the services through AccessGuard.
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/error").permitAll()
+
+                        // Auth
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register-restaurant").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/**", "/error").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+
+                        // Actuator: only health and info are public
+                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+
+                        // Admin
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/restaurants/me").hasRole("RESTAURANT")
+                        .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
+
+                        // Restaurants
+                        .requestMatchers(HttpMethod.GET, "/api/restaurants/me").hasRole("RESTAURANT")
                         .requestMatchers(HttpMethod.GET, "/api/restaurants").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/restaurants").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/restaurants/*/deliveries", "/api/restaurants/*/deliveries/status").hasAnyRole("ADMIN", "RESTAURANT")
+                        .requestMatchers(HttpMethod.GET, "/api/restaurants/*").hasAnyRole("ADMIN", "RESTAURANT")
+
+                        // Vehicles
                         .requestMatchers(HttpMethod.POST, "/api/vehicles").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/vehicles").hasAnyRole("ADMIN", "DISPATCHER")
+
+                        // Drivers
+                        .requestMatchers(HttpMethod.GET, "/api/drivers").hasAnyRole("ADMIN", "DISPATCHER")
                         .requestMatchers(HttpMethod.POST, "/api/drivers").hasRole("ADMIN")
-                        .requestMatchers("/api/drivers/**").hasAnyRole("ADMIN", "DRIVER")
+                        .requestMatchers(HttpMethod.GET, "/api/drivers/me").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/drivers/me/location").hasRole("DRIVER")
+
+                        // Deliveries
                         .requestMatchers(HttpMethod.GET, "/api/deliveries/me").hasRole("DRIVER")
-                        .requestMatchers("/api/deliveries/**").hasAnyRole("ADMIN", "DISPATCHER", "DRIVER", "RESTAURANT")
+                        .requestMatchers(HttpMethod.GET, "/api/deliveries", "/api/deliveries/*").hasAnyRole("ADMIN", "DISPATCHER", "RESTAURANT", "DRIVER")
+                        .requestMatchers(HttpMethod.POST, "/api/deliveries").hasAnyRole("ADMIN", "DISPATCHER", "RESTAURANT")
+                        .requestMatchers(HttpMethod.PUT, "/api/deliveries/*/assign").hasAnyRole("ADMIN", "DISPATCHER")
+                        .requestMatchers(HttpMethod.PUT, "/api/deliveries/*/pickup", "/api/deliveries/*/start", "/api/deliveries/*/complete", "/api/deliveries/*/fail").hasRole("DRIVER")
+
+                        // Orders
                         .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.GET, "/api/orders/my-orders").hasRole("CUSTOMER")
-                           .requestMatchers(HttpMethod.GET, "/api/orders/restaurant").hasRole("RESTAURANT")
-                           .requestMatchers(HttpMethod.GET, "/api/orders/*/history").hasAnyRole("ADMIN", "RESTAURANT", "DRIVER")
-                           .requestMatchers(HttpMethod.PATCH, "/api/orders/*/accept", "/api/orders/*/prepare", "/api/orders/*/ready").hasRole("RESTAURANT")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/restaurant").hasRole("RESTAURANT")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/*/history").hasAnyRole("ADMIN", "RESTAURANT", "DRIVER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/orders/*/accept", "/api/orders/*/prepare", "/api/orders/*/ready").hasRole("RESTAURANT")
                         .requestMatchers(HttpMethod.PATCH, "/api/orders/*/pickup", "/api/orders/*/deliver").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.PATCH, "/api/orders/*/assign-driver/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("ADMIN")
-                        .anyRequest().authenticated()
+
+                        .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

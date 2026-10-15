@@ -22,6 +22,7 @@ import com.robustcode.delivery.order.repository.OrderRepository;
 import com.robustcode.delivery.order.repository.OrderStatusHistoryRepository;
 import com.robustcode.delivery.restaurant.domain.Restaurant;
 import com.robustcode.delivery.restaurant.repository.RestaurantRepository;
+import com.robustcode.delivery.security.AccessGuard;
 import com.robustcode.delivery.user.domain.User;
 import com.robustcode.delivery.user.repository.UserRepository;
 
@@ -43,6 +44,8 @@ public class OrderService {
     private final UserRepository userRepository;
 
     private final DriverRepository driverRepository;
+
+    private final AccessGuard accessGuard;
 
 
 
@@ -538,21 +541,56 @@ public class OrderService {
 
 
 
-        @Transactional(readOnly = true)
-        public List<OrderStatusHistoryResponse> getOrderStatusHistory(
-                        Long orderId
-        ){
+    /**
+     * ADMIN sees any order history; RESTAURANT only for orders of its
+     * restaurant; DRIVER only for orders assigned to them.
+     */
+    @Transactional(readOnly = true)
+    public List<OrderStatusHistoryResponse> getOrderStatusHistory(
+            Long orderId,
+            String email
+    ){
 
-                return orderStatusHistoryRepository.findByOrderId(orderId)
+        Order order =
+                orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Order not found"));
 
-                                .stream()
+        checkCanViewOrder(order, accessGuard.requireUser(email));
 
-                                .sorted((left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()))
+        return orderStatusHistoryRepository.findByOrderId(orderId)
 
-                                .map(OrderStatusHistoryResponse::from)
+                .stream()
 
-                                .toList();
+                .sorted((left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()))
 
+                .map(OrderStatusHistoryResponse::from)
+
+                .toList();
+
+    }
+
+
+
+    private void checkCanViewOrder(Order order, User user){
+
+        if (AccessGuard.isAdmin(user)) {
+            return;
         }
+
+        Long restaurantId = AccessGuard.ownRestaurantId(user);
+
+        if (restaurantId != null && restaurantId.equals(order.getRestaurant().getId())) {
+            return;
+        }
+
+        Long driverId = AccessGuard.ownDriverId(user);
+
+        if (driverId != null && order.getDriver() != null && driverId.equals(order.getDriver().getId())) {
+            return;
+        }
+
+        throw new ForbiddenException("You do not have access to this order");
+
+    }
 
 }

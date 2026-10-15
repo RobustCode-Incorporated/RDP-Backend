@@ -29,7 +29,7 @@ public class DriverController {
     private final DriverService driverService;
 
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','DISPATCHER')")
     @GetMapping
     public List<DriverResponse> findAll(){
 
@@ -39,6 +39,7 @@ public class DriverController {
 
 
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DriverResponse> createDriver(
             @Valid @RequestBody CreateDriverRequest request
@@ -57,6 +58,7 @@ public class DriverController {
     /**
      * DRIVER gets his own profile
      */
+    @PreAuthorize("hasRole('DRIVER')")
     @GetMapping("/me")
     public DriverResponse getMyDriver(
             Authentication authentication

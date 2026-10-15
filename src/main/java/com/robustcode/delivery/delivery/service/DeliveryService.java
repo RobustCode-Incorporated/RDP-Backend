@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.robustcode.delivery.delivery.domain.Delivery;
 import com.robustcode.delivery.delivery.dto.CreateDeliveryRequest;
@@ -17,6 +18,7 @@ import com.robustcode.delivery.driver.domain.Driver;
 import com.robustcode.delivery.driver.repository.DriverRepository;
 import com.robustcode.delivery.restaurant.domain.Restaurant;
 import com.robustcode.delivery.restaurant.repository.RestaurantRepository;
+import com.robustcode.delivery.security.AccessGuard;
 import com.robustcode.delivery.user.domain.User;
 import com.robustcode.delivery.user.repository.UserRepository;
 
@@ -36,9 +38,59 @@ public class DeliveryService {
     private final UserRepository userRepository;
     private final DriverRepository driverRepository;
     private final RestaurantRepository restaurantRepository;
+    private final AccessGuard accessGuard;
 
-    public List<Delivery> findAll() {
-        return repository.findAll();
+    /**
+     * ADMIN/DISPATCHER see every delivery, RESTAURANT only its restaurant's,
+     * DRIVER only the ones assigned to them.
+     */
+    @Transactional(readOnly = true)
+    public List<Delivery> findAllVisibleTo(String email) {
+
+        User user = accessGuard.requireUser(email);
+
+        if (AccessGuard.isAdminOrDispatcher(user)) {
+            return repository.findAll();
+        }
+
+        Long restaurantId = AccessGuard.ownRestaurantId(user);
+        if (restaurantId != null) {
+            return repository.findByRestaurantId(restaurantId);
+        }
+
+        Long driverId = AccessGuard.ownDriverId(user);
+        if (driverId != null) {
+            return repository.findByDriverId(driverId);
+        }
+
+        if (user.getRole() == User.Role.RESTAURANT || user.getRole() == User.Role.DRIVER) {
+            return List.of();
+        }
+
+        throw new ForbiddenException("You do not have access to deliveries");
+    }
+
+    @Transactional(readOnly = true)
+    public Delivery findByIdVisibleTo(Long id, String email) {
+
+        Delivery delivery = findById(id);
+        User user = accessGuard.requireUser(email);
+
+        if (AccessGuard.isAdminOrDispatcher(user)) {
+            return delivery;
+        }
+
+        Long restaurantId = AccessGuard.ownRestaurantId(user);
+        if (restaurantId != null && restaurantId.equals(delivery.getRestaurant().getId())) {
+            return delivery;
+        }
+
+        Long driverId = AccessGuard.ownDriverId(user);
+        if (driverId != null && delivery.getDriver() != null && driverId.equals(delivery.getDriver().getId())) {
+            return delivery;
+        }
+
+        throw new ForbiddenException("You do not have access to this delivery");
     }
 
     public List<Delivery> findMyDeliveries(String email) {
@@ -78,7 +130,21 @@ public class DeliveryService {
                 .orElseThrow(() -> new NotFoundException("Delivery not found"));
     }
 
-    public Delivery create(CreateDeliveryRequest request) {
+    /**
+     * ADMIN/DISPATCHER create deliveries for any restaurant; a RESTAURANT
+     * user only for its own restaurant.
+     */
+    @Transactional
+    public Delivery create(CreateDeliveryRequest request, String email) {
+
+        User creator = accessGuard.requireUser(email);
+
+        if (!AccessGuard.isAdminOrDispatcher(creator)) {
+            Long ownRestaurantId = AccessGuard.ownRestaurantId(creator);
+            if (ownRestaurantId == null || !ownRestaurantId.equals(request.getRestaurantId())) {
+                throw new ForbiddenException("You can only create deliveries for your own restaurant");
+            }
+        }
 
         User customer = userRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
