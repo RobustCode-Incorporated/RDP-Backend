@@ -17,3 +17,7 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
