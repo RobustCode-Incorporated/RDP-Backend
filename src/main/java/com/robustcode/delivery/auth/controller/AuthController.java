@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +36,10 @@ public class AuthController {
                 .body(UserResponse.from(user));
     }
 
+    /**
+     * ADMIN only: restaurants are onboarded by the platform admin.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register-restaurant")
     public ResponseEntity<UserResponse> registerRestaurant(
             @Valid @RequestBody RegisterRestaurantRequest request

@@ -14,7 +14,9 @@ public record UserResponse(
 
         String lastName,
 
-        User.Role role
+        User.Role role,
+
+        boolean enabled
 
 ) {
 
@@ -26,7 +28,8 @@ public record UserResponse(
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getRole()
+                user.getRole(),
+                user.isEnabled()
         );
     }
 }

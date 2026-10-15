@@ -26,6 +26,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 
 @Service
 @RequiredArgsConstructor
@@ -50,8 +53,26 @@ public class AuthService {
 
 
 
+    /**
+     * Roles that may be self-assigned through the public signup endpoint.
+     * ADMIN, DISPATCHER and RESTAURANT accounts are created by an admin only.
+     */
+    private static final Set<User.Role> PUBLIC_SIGNUP_ROLES = EnumSet.of(
+            User.Role.DRIVER,
+            User.Role.CUSTOMER
+    );
+
+    /**
+     * Public signup. DRIVER accounts are created disabled and must be
+     * approved by an admin (PATCH /api/admin/users/{id}/enable) before login.
+     */
     public User register(RegisterRequest request) {
 
+        if (request.role() == null || !PUBLIC_SIGNUP_ROLES.contains(request.role())) {
+            throw new BusinessRuleException(
+                    "Public registration is only allowed for roles DRIVER and CUSTOMER"
+            );
+        }
 
         if (userRepository.existsByEmail(request.email())) {
 
@@ -62,6 +83,8 @@ public class AuthService {
         }
 
 
+
+        boolean requiresApproval = request.role() == User.Role.DRIVER;
 
         User user = User.builder()
 
@@ -79,7 +102,7 @@ public class AuthService {
 
                 .role(request.role())
 
-                .enabled(true)
+                .enabled(!requiresApproval)
 
                 .build();
 
@@ -151,6 +174,9 @@ public class AuthService {
 
     }
 
+    /**
+     * ADMIN only: onboard a restaurant together with its RESTAURANT account.
+     */
     public User registerRestaurant(
             RegisterRestaurantRequest request
     ) {
