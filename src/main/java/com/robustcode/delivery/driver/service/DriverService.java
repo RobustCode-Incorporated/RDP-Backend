@@ -71,6 +71,7 @@ public class DriverService {
 
         driver.setCurrentLatitude(scaleCoordinate(request.latitude()));
         driver.setCurrentLongitude(scaleCoordinate(request.longitude()));
+        driver.setLastLocationAt(java.time.LocalDateTime.now());
 
         Driver savedDriver = driverRepository.save(driver);
 
@@ -228,6 +229,23 @@ public class DriverService {
 
 
 
+    /**
+     * Dispatch view: enabled drivers currently AVAILABLE, most recently
+     * located first.
+     */
+    @Transactional(readOnly = true)
+    public List<DriverResponse> findAvailable(){
+
+        return driverRepository
+                .findEnabledByAvailabilityStatus(Driver.AvailabilityStatus.AVAILABLE)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+
+    }
+
+
+
         @Transactional(readOnly = true)
         public List<DriverResponse> findAll(){
 
@@ -271,7 +289,10 @@ public class DriverService {
 
                 driver.getCurrentLatitude(),
 
-                driver.getCurrentLongitude()
+                driver.getCurrentLongitude(),
+
+                driver.getLastLocationAt() == null ? null
+                        : driver.getLastLocationAt().atZone(java.time.ZoneId.systemDefault()).toInstant()
 
         );
 

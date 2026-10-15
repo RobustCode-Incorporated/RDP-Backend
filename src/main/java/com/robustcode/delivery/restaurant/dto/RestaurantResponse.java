@@ -1,5 +1,7 @@
 package com.robustcode.delivery.restaurant.dto;
 
+import java.math.BigDecimal;
+
 
 import com.robustcode.delivery.restaurant.domain.Restaurant;
 
@@ -22,6 +24,10 @@ public record RestaurantResponse(
         String city,
 
         String country,
+
+        BigDecimal latitude,
+
+        BigDecimal longitude,
 
         Restaurant.Status status
 
@@ -49,6 +55,10 @@ public record RestaurantResponse(
                 restaurant.getCity(),
 
                 restaurant.getCountry(),
+
+                restaurant.getLatitude(),
+
+                restaurant.getLongitude(),
 
                 restaurant.getStatus()
 

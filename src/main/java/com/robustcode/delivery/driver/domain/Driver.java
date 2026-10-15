@@ -133,6 +133,12 @@ public class Driver {
 
 
 
+    @Column(name = "last_location_at")
+    private LocalDateTime lastLocationAt;
+
+
+
+
     @Builder.Default
     @Column(
             name = "created_at",

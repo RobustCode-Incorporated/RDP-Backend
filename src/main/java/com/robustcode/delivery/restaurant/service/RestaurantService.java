@@ -13,6 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.robustcode.delivery.restaurant.domain.Restaurant;
 import com.robustcode.delivery.restaurant.dto.CreateRestaurantRequest;
 import com.robustcode.delivery.restaurant.dto.RestaurantResponse;
+import com.robustcode.delivery.restaurant.dto.UpdateRestaurantRequest;
+import com.robustcode.delivery.common.exception.FieldValidationException;
+import java.math.RoundingMode;
+import java.util.Map;
 import com.robustcode.delivery.restaurant.repository.RestaurantRepository;
 import com.robustcode.delivery.security.AccessGuard;
 import com.robustcode.delivery.user.domain.User;
@@ -135,6 +139,45 @@ public class RestaurantService {
         return RestaurantResponse.from(
                 user.getRestaurant()
         );
+
+    }
+
+
+
+    /**
+     * ADMIN only (SecurityConfig). Partial update; coordinates are the
+     * default pickup point of the restaurant's new deliveries.
+     */
+    public RestaurantResponse update(Long id, UpdateRestaurantRequest request){
+
+        Restaurant restaurant = repository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Restaurant not found"));
+
+        if((request.latitude() == null) != (request.longitude() == null)){
+            throw new FieldValidationException(Map.of(
+                    "latitude", "latitude and longitude must be provided together"));
+        }
+
+        if(request.email() != null
+                && !request.email().equalsIgnoreCase(restaurant.getEmail())
+                && repository.existsByEmail(request.email())){
+            throw new ConflictException("Restaurant email already exists");
+        }
+
+        if(request.name() != null) restaurant.setName(request.name().trim());
+        if(request.description() != null) restaurant.setDescription(request.description());
+        if(request.phoneNumber() != null) restaurant.setPhoneNumber(request.phoneNumber().trim());
+        if(request.email() != null) restaurant.setEmail(request.email().trim());
+        if(request.address() != null) restaurant.setAddress(request.address().trim());
+        if(request.city() != null) restaurant.setCity(request.city());
+        if(request.country() != null) restaurant.setCountry(request.country());
+        if(request.status() != null) restaurant.setStatus(request.status());
+        if(request.latitude() != null){
+            restaurant.setLatitude(request.latitude().setScale(7, RoundingMode.HALF_UP));
+            restaurant.setLongitude(request.longitude().setScale(7, RoundingMode.HALF_UP));
+        }
+
+        return RestaurantResponse.from(repository.saveAndFlush(restaurant));
 
     }
 

@@ -1,5 +1,6 @@
 package com.robustcode.delivery.restaurant.domain;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -70,6 +71,15 @@ public class Restaurant {
 
 
     private String country;
+
+
+    /** Default pickup coordinates for this restaurant's deliveries. */
+    @Column(precision = 10, scale = 7)
+    private BigDecimal latitude;
+
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal longitude;
 
 
     @Builder.Default

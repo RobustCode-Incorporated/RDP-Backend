@@ -39,6 +39,19 @@ public class DriverController {
 
 
 
+    /**
+     * Dispatch: enabled drivers that can be assigned right now, with location.
+     */
+    @PreAuthorize("hasAnyRole('ADMIN','DISPATCHER')")
+    @GetMapping("/available")
+    public List<DriverResponse> findAvailable(){
+
+        return driverService.findAvailable();
+
+    }
+
+
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<DriverResponse> createDriver(
