@@ -1,5 +1,6 @@
 # Build outputs
 /target/
+target/
 
 # IDE files
 .idea/
@@ -11,6 +12,8 @@
 
 # Logs
 *.log
+error.log
+run.log
 
 # Local env overrides
 .env
