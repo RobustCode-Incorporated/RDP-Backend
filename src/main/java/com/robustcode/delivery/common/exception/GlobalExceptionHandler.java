@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -35,7 +36,22 @@ public class GlobalExceptionHandler {
             ApiException exception,
             HttpServletRequest request
     ) {
+        if (exception instanceof FieldValidationException validation) {
+            return ResponseEntity
+                    .status(exception.getStatus())
+                    .body(ApiError.of(exception.getStatus(), exception.getMessage(),
+                            request.getRequestURI(), validation.getFieldErrors()));
+        }
         return build(exception.getStatus(), exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> handleOptimisticLock(
+            OptimisticLockingFailureException exception,
+            HttpServletRequest request
+    ) {
+        return build(HttpStatus.CONFLICT,
+                "The resource was modified concurrently. Reload it and try again.", request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
