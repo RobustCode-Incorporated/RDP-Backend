@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# LOCAL DEVELOPMENT ONLY. Targets localhost and a local MySQL container.
+# "root_password" / "password123" are throwaway local test values, not real
+# secrets. Never point this script at production.
+# NOTE: since session-1/security, /api/auth/register rejects ADMIN/RESTAURANT
+# roles and DRIVER signups start disabled, so the admin/restaurant creation
+# steps below need an admin created via ADMIN_BOOTSTRAP_EMAIL/PASSWORD.
+
 BASE_URL="http://localhost:8080"
 
 MYSQL_CONTAINER="delivery-mysql"
