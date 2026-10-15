@@ -2,6 +2,8 @@
 
 package com.robustcode.delivery.restaurant.service;
 
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -25,7 +27,7 @@ public class RestaurantDeliveryService {
     public List<Delivery> getRestaurantDeliveries(Long restaurantId) {
 
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
-                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+                .orElseThrow(() -> new NotFoundException("Restaurant not found"));
 
         return deliveryRepository.findByRestaurant(restaurant);
     }
@@ -35,7 +37,7 @@ public class RestaurantDeliveryService {
             Delivery.Status status) {
 
         restaurantRepository.findById(restaurantId)
-                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+                .orElseThrow(() -> new NotFoundException("Restaurant not found"));
 
         return deliveryRepository.findByRestaurantIdAndStatus(
                 restaurantId,

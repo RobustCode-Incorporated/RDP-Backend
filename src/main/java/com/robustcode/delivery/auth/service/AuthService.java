@@ -1,5 +1,9 @@
 package com.robustcode.delivery.auth.service;
 
+import com.robustcode.delivery.common.exception.BusinessRuleException;
+import com.robustcode.delivery.common.exception.ConflictException;
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 import com.robustcode.delivery.auth.dto.LoginRequest;
 import com.robustcode.delivery.auth.dto.LoginResponse;
 import com.robustcode.delivery.auth.dto.RegisterRequest;
@@ -51,7 +55,7 @@ public class AuthService {
 
         if (userRepository.existsByEmail(request.email())) {
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Email already exists"
             );
 
@@ -102,17 +106,17 @@ public class AuthService {
         String vehiclePlate = sanitizeValue(request.vehiclePlate());
 
         if (phoneNumber == null || vehicleType == null || vehiclePlate == null) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Phone number, vehicle type and vehicle plate are required for DRIVER registration"
             );
         }
 
         if (driverRepository.existsByUser(user)) {
-            throw new RuntimeException("Driver profile already exists");
+            throw new ConflictException("Driver profile already exists");
         }
 
         if (vehicleRepository.existsByPlateNumber(vehiclePlate)) {
-            throw new RuntimeException("Vehicle plate already exists");
+            throw new ConflictException("Vehicle plate already exists");
         }
 
         Vehicle vehicle = Vehicle.builder()
@@ -153,7 +157,7 @@ public class AuthService {
 
         if(userRepository.existsByEmail(request.adminEmail())) {
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Admin email already exists"
             );
 
@@ -161,7 +165,7 @@ public class AuthService {
 
         if (restaurantRepository.existsByEmail(request.restaurantEmail())) {
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Restaurant email already exists"
             );
 
@@ -245,7 +249,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.email())
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );

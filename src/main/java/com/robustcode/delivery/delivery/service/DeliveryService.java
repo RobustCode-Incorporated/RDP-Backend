@@ -1,5 +1,10 @@
 package com.robustcode.delivery.delivery.service;
 
+import com.robustcode.delivery.common.exception.BusinessRuleException;
+import com.robustcode.delivery.common.exception.ConflictException;
+import com.robustcode.delivery.common.exception.ForbiddenException;
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 import java.util.List;
 import java.util.Set;
 
@@ -39,10 +44,10 @@ public class DeliveryService {
     public List<Delivery> findMyDeliveries(String email) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (user.getDriver() == null) {
-            throw new RuntimeException("No driver profile assigned to user");
+            throw new BusinessRuleException("No driver profile assigned to user");
         }
 
         Driver driver = user.getDriver();
@@ -70,20 +75,20 @@ public class DeliveryService {
 
     public Delivery findById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+                .orElseThrow(() -> new NotFoundException("Delivery not found"));
     }
 
     public Delivery create(CreateDeliveryRequest request) {
 
         User customer = userRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
 
         if (customer.getRole() != User.Role.CUSTOMER) {
-            throw new RuntimeException("User is not a customer");
+            throw new BusinessRuleException("User is not a customer");
         }
 
         Restaurant restaurant = restaurantRepository.findById(request.getRestaurantId())
-                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+                .orElseThrow(() -> new NotFoundException("Restaurant not found"));
 
         Delivery delivery = Delivery.builder()
                 .customer(customer)
@@ -99,17 +104,17 @@ public class DeliveryService {
     public Delivery assignDriver(Long deliveryId, Long driverId) {
 
         Delivery delivery = repository.findById(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+                .orElseThrow(() -> new NotFoundException("Delivery not found"));
 
         if (delivery.getDriver() != null) {
-            throw new RuntimeException("Delivery already assigned");
+            throw new ConflictException("Delivery already assigned");
         }
 
         Driver driver = driverRepository.findById(driverId)
-                .orElseThrow(() -> new RuntimeException("Driver not found"));
+                .orElseThrow(() -> new NotFoundException("Driver not found"));
 
         if (driver.getAvailabilityStatus() != Driver.AvailabilityStatus.AVAILABLE) {
-            throw new RuntimeException("Driver is not available");
+            throw new ConflictException("Driver is not available");
         }
 
         delivery.setDriver(driver);
@@ -123,17 +128,17 @@ public class DeliveryService {
     private Delivery findAssignedDeliveryForDriver(Long deliveryId, String email) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (user.getDriver() == null) {
-            throw new RuntimeException("No driver profile assigned to user");
+            throw new BusinessRuleException("No driver profile assigned to user");
         }
 
         Delivery delivery = repository.findById(deliveryId)
-                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+                .orElseThrow(() -> new NotFoundException("Delivery not found"));
 
         if (delivery.getDriver() == null || !delivery.getDriver().getId().equals(user.getDriver().getId())) {
-            throw new RuntimeException("Driver not assigned to this delivery");
+            throw new ForbiddenException("Driver not assigned to this delivery");
         }
 
         return delivery;
@@ -144,7 +149,7 @@ public class DeliveryService {
         Delivery delivery = findAssignedDeliveryForDriver(deliveryId, email);
 
         if (delivery.getStatus() != Delivery.Status.ASSIGNED) {
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Delivery must be ASSIGNED before pickup. Current status: "
                             + delivery.getStatus());
         }
@@ -159,7 +164,7 @@ public class DeliveryService {
         Delivery delivery = findAssignedDeliveryForDriver(deliveryId, email);
 
         if (delivery.getStatus() != Delivery.Status.PICKED_UP) {
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Delivery must be PICKED_UP before starting transit. Current status: "
                             + delivery.getStatus());
         }
@@ -174,7 +179,7 @@ public class DeliveryService {
         Delivery delivery = findAssignedDeliveryForDriver(deliveryId, email);
 
         if (delivery.getStatus() != Delivery.Status.IN_TRANSIT) {
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Delivery must be IN_TRANSIT before completion. Current status: "
                             + delivery.getStatus());
         }
@@ -196,7 +201,7 @@ public class DeliveryService {
         if (delivery.getStatus() != Delivery.Status.ASSIGNED
                 && delivery.getStatus() != Delivery.Status.PICKED_UP
                 && delivery.getStatus() != Delivery.Status.IN_TRANSIT) {
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Delivery can only be marked as failed from ASSIGNED, PICKED_UP, or IN_TRANSIT. Current status: "
                             + delivery.getStatus());
         }

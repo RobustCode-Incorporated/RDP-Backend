@@ -1,5 +1,9 @@
 package com.robustcode.delivery.restaurant.service;
 
+import com.robustcode.delivery.common.exception.BusinessRuleException;
+import com.robustcode.delivery.common.exception.ConflictException;
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 
 import java.util.List;
 
@@ -36,7 +40,7 @@ public class RestaurantService {
         if(request.email() != null 
                 && repository.existsByEmail(request.email())){
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Restaurant email already exists"
             );
 
@@ -91,7 +95,7 @@ public class RestaurantService {
         Restaurant restaurant = repository.findById(id)
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "Restaurant not found"
                         )
                 );
@@ -108,13 +112,13 @@ public class RestaurantService {
         User user = userRepository.findByEmail(email)
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
 
         if(user.getRestaurant() == null){
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No restaurant assigned to user"
             );
         }

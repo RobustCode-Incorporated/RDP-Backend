@@ -1,5 +1,9 @@
 package com.robustcode.delivery.driver.service;
 
+import com.robustcode.delivery.common.exception.BusinessRuleException;
+import com.robustcode.delivery.common.exception.ConflictException;
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -48,7 +52,7 @@ public class DriverService {
         User user = userRepository.findByEmail(email)
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
@@ -57,7 +61,7 @@ public class DriverService {
 
         if (user.getDriver() == null) {
 
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No driver profile assigned to user"
             );
 
@@ -90,7 +94,7 @@ public class DriverService {
         User user = userRepository.findById(request.userId())
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
@@ -99,7 +103,7 @@ public class DriverService {
 
         if(user.getRole() != User.Role.DRIVER){
 
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "User must have DRIVER role"
             );
 
@@ -110,7 +114,7 @@ public class DriverService {
         if(driverRepository.existsByUser(user)){
 
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Driver profile already exists"
             );
 
@@ -122,7 +126,7 @@ public class DriverService {
                 request.vehiclePlate()
         )){
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Vehicle plate already exists"
             );
 
@@ -201,7 +205,7 @@ public class DriverService {
         User user = userRepository.findByEmail(email)
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
@@ -210,7 +214,7 @@ public class DriverService {
 
         if(user.getDriver() == null){
 
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No driver profile assigned to user"
             );
 

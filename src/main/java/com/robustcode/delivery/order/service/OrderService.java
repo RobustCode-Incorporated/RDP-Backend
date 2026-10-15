@@ -1,5 +1,10 @@
 package com.robustcode.delivery.order.service;
 
+import com.robustcode.delivery.common.exception.BusinessRuleException;
+import com.robustcode.delivery.common.exception.ConflictException;
+import com.robustcode.delivery.common.exception.ForbiddenException;
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 
 import java.util.List;
 
@@ -79,14 +84,14 @@ public class OrderService {
         User customer =
                 userRepository.findByEmail(customerEmail)
                 .orElseThrow(() ->
-                        new RuntimeException("Customer not found")
+                        new NotFoundException("Customer not found")
                 );
 
 
         Restaurant restaurant =
                 restaurantRepository.findById(request.restaurantId())
                 .orElseThrow(() ->
-                        new RuntimeException("Restaurant not found")
+                        new NotFoundException("Restaurant not found")
                 );
 
 
@@ -134,7 +139,7 @@ public class OrderService {
         Order order =
                 orderRepository.findById(orderId)
                 .orElseThrow(() ->
-                        new RuntimeException("Order not found")
+                        new NotFoundException("Order not found")
                 );
 
 
@@ -145,7 +150,7 @@ public class OrderService {
 
         if(!isValidTransition(oldStatus,newStatus)){
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Invalid order status transition"
             );
 
@@ -273,7 +278,7 @@ public class OrderService {
 
         Order order =
                 orderRepository.findById(orderId)
-                .orElseThrow();
+                .orElseThrow(() -> new NotFoundException("Order not found"));
 
 
 
@@ -309,7 +314,7 @@ public class OrderService {
         Order order =
                 orderRepository.findById(orderId)
                 .orElseThrow(() ->
-                        new RuntimeException("Order not found")
+                        new NotFoundException("Order not found")
                 );
 
 
@@ -317,7 +322,7 @@ public class OrderService {
         Driver driver =
                 driverRepository.findById(driverId)
                 .orElseThrow(() ->
-                        new RuntimeException("Driver not found")
+                        new NotFoundException("Driver not found")
                 );
 
 
@@ -325,7 +330,7 @@ public class OrderService {
         if(driver.getAvailabilityStatus()
                 != Driver.AvailabilityStatus.AVAILABLE){
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Driver is not available"
             );
 
@@ -366,13 +371,13 @@ public class OrderService {
 
         Order order =
                 orderRepository.findById(orderId)
-                .orElseThrow();
+                .orElseThrow(() -> new NotFoundException("Order not found"));
 
 
 
         User user =
                 userRepository.findByEmail(email)
-                .orElseThrow();
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
 
 
@@ -382,7 +387,7 @@ public class OrderService {
                 .equals(user.getRestaurant().getId())
         ){
 
-            throw new RuntimeException(
+            throw new ForbiddenException(
                     "Unauthorized restaurant access"
             );
 
@@ -401,7 +406,7 @@ public class OrderService {
 
         Order order =
                 orderRepository.findById(orderId)
-                .orElseThrow();
+                .orElseThrow(() -> new NotFoundException("Order not found"));
 
 
 
@@ -412,7 +417,7 @@ public class OrderService {
                 .equals(email)
         ){
 
-            throw new RuntimeException(
+            throw new ForbiddenException(
                     "Driver not assigned to this order"
             );
 
@@ -461,7 +466,7 @@ public class OrderService {
 
         User customer =
                 userRepository.findByEmail(email)
-                .orElseThrow();
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
 
         return orderRepository.findByCustomer(customer)
@@ -485,7 +490,7 @@ public class OrderService {
 
         User user =
                 userRepository.findByEmail(email)
-                .orElseThrow();
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
 
 
@@ -496,7 +501,7 @@ public class OrderService {
 
         if(restaurant==null){
 
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Restaurant not assigned"
             );
 

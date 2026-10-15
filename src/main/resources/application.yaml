@@ -19,6 +19,11 @@ spring:
 
 server:
   port: ${PORT:8080}
+  error:
+    # never expose stack traces or exception details in error responses
+    include-stacktrace: never
+    include-exception: false
+    include-message: never
 
 app:
   cors:

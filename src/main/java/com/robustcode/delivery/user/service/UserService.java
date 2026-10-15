@@ -1,5 +1,7 @@
 package com.robustcode.delivery.user.service;
 
+import com.robustcode.delivery.common.exception.ConflictException;
+
 import com.robustcode.delivery.user.domain.User;
 import com.robustcode.delivery.user.dto.CreateUserRequest;
 import com.robustcode.delivery.user.repository.UserRepository;
@@ -29,7 +31,7 @@ public class UserService {
     public User createUser(CreateUserRequest request){
 
         if(userRepository.existsByEmail(request.email())){
-            throw new IllegalArgumentException(
+            throw new ConflictException(
                     "Email already exists"
             );
         }
