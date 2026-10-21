@@ -1,5 +1,9 @@
 package com.robustcode.delivery.driver.service;
 
+import com.robustcode.delivery.common.exception.BusinessRuleException;
+import com.robustcode.delivery.common.exception.ConflictException;
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -48,7 +52,7 @@ public class DriverService {
         User user = userRepository.findByEmail(email)
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
@@ -57,7 +61,7 @@ public class DriverService {
 
         if (user.getDriver() == null) {
 
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No driver profile assigned to user"
             );
 
@@ -67,6 +71,7 @@ public class DriverService {
 
         driver.setCurrentLatitude(scaleCoordinate(request.latitude()));
         driver.setCurrentLongitude(scaleCoordinate(request.longitude()));
+        driver.setLastLocationAt(java.time.LocalDateTime.now());
 
         Driver savedDriver = driverRepository.save(driver);
 
@@ -90,7 +95,7 @@ public class DriverService {
         User user = userRepository.findById(request.userId())
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
@@ -99,7 +104,7 @@ public class DriverService {
 
         if(user.getRole() != User.Role.DRIVER){
 
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "User must have DRIVER role"
             );
 
@@ -110,7 +115,7 @@ public class DriverService {
         if(driverRepository.existsByUser(user)){
 
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Driver profile already exists"
             );
 
@@ -122,7 +127,7 @@ public class DriverService {
                 request.vehiclePlate()
         )){
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Vehicle plate already exists"
             );
 
@@ -201,7 +206,7 @@ public class DriverService {
         User user = userRepository.findByEmail(email)
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
@@ -210,7 +215,7 @@ public class DriverService {
 
         if(user.getDriver() == null){
 
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "No driver profile assigned to user"
             );
 
@@ -219,6 +224,23 @@ public class DriverService {
         return mapToResponse(
                 user.getDriver()
         );
+
+    }
+
+
+
+    /**
+     * Dispatch view: enabled drivers currently AVAILABLE, most recently
+     * located first.
+     */
+    @Transactional(readOnly = true)
+    public List<DriverResponse> findAvailable(){
+
+        return driverRepository
+                .findEnabledByAvailabilityStatus(Driver.AvailabilityStatus.AVAILABLE)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
 
     }
 
@@ -267,7 +289,10 @@ public class DriverService {
 
                 driver.getCurrentLatitude(),
 
-                driver.getCurrentLongitude()
+                driver.getCurrentLongitude(),
+
+                driver.getLastLocationAt() == null ? null
+                        : driver.getLastLocationAt().atZone(java.time.ZoneId.systemDefault()).toInstant()
 
         );
 

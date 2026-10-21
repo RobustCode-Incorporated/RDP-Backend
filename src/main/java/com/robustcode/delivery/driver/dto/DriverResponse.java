@@ -2,6 +2,7 @@ package com.robustcode.delivery.driver.dto;
 
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 import com.robustcode.delivery.driver.domain.Driver;
 
@@ -40,7 +41,10 @@ public record DriverResponse(
         BigDecimal currentLatitude,
 
 
-        BigDecimal currentLongitude
+        BigDecimal currentLongitude,
+
+
+        Instant lastLocationAt
 
 
 ) {}

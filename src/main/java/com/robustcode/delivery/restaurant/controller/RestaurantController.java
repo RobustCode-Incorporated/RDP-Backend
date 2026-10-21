@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.robustcode.delivery.restaurant.dto.CreateRestaurantRequest;
 import com.robustcode.delivery.restaurant.dto.RestaurantResponse;
+import com.robustcode.delivery.restaurant.dto.UpdateRestaurantRequest;
 import com.robustcode.delivery.restaurant.service.RestaurantService;
 
 import jakarta.validation.Valid;
@@ -26,7 +27,7 @@ public class RestaurantController {
 
 
 
-    @PreAuthorize("hasAnyRole('ADMIN','RESTAURANT')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public RestaurantResponse create(
@@ -64,10 +65,24 @@ public class RestaurantController {
     @PreAuthorize("hasAnyRole('ADMIN','RESTAURANT')")
     @GetMapping("/{id}")
     public RestaurantResponse findById(
-            @PathVariable Long id
+            @PathVariable Long id,
+            Authentication authentication
     ){
 
-        return service.findById(id);
+        return service.findById(id, authentication.getName());
+
+    }
+
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}")
+    public RestaurantResponse update(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateRestaurantRequest request
+    ){
+
+        return service.update(id, request);
 
     }
 

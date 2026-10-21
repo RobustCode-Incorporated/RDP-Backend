@@ -1,28 +1,33 @@
 package com.robustcode.delivery.delivery.repository;
 
 import java.util.List;
+import java.util.Optional;
 
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import com.robustcode.delivery.delivery.domain.Delivery;
-import com.robustcode.delivery.restaurant.domain.Restaurant;
-import com.robustcode.delivery.driver.domain.Driver;
 
+/**
+ * Restaurant, driver and the driver's user are fetched with the delivery so
+ * DTO mapping works without open-in-view and without N+1 queries.
+ */
 public interface DeliveryRepository
-        extends JpaRepository<Delivery, Long> {
+        extends JpaRepository<Delivery, Long>, JpaSpecificationExecutor<Delivery> {
 
-    List<Delivery> findByRestaurant(Restaurant restaurant);
+    @Override
+    @EntityGraph(attributePaths = {"restaurant", "driver", "driver.user"})
+    Optional<Delivery> findById(Long id);
 
-    List<Delivery> findByRestaurantId(Long restaurantId);
+    @Override
+    @EntityGraph(attributePaths = {"restaurant", "driver", "driver.user"})
+    List<Delivery> findAll(Specification<Delivery> spec, Sort sort);
 
-    List<Delivery> findByDriver(Driver driver);
+    @EntityGraph(attributePaths = {"restaurant", "driver", "driver.user"})
+    List<Delivery> findByDriverIdOrderByCreatedAtDesc(Long driverId);
 
-    List<Delivery> findByDriverId(Long driverId);
-
-    List<Delivery> findByStatus(Delivery.Status status);
-
-    List<Delivery> findByRestaurantIdAndStatus(
-            Long restaurantId,
-            Delivery.Status status
-    );
+    boolean existsByDriverIdAndStatusIn(Long driverId, java.util.Collection<Delivery.Status> statuses);
 }

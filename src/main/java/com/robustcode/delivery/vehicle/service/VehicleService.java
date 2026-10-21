@@ -1,5 +1,7 @@
 package com.robustcode.delivery.vehicle.service;
 
+import com.robustcode.delivery.common.exception.ConflictException;
+
 
 import com.robustcode.delivery.vehicle.domain.Vehicle;
 import com.robustcode.delivery.vehicle.dto.CreateVehicleRequest;
@@ -40,7 +42,7 @@ public class VehicleService {
                 request.plateNumber()
         )){
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Vehicle plate already exists"
             );
 

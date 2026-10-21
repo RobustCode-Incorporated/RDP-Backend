@@ -1,5 +1,9 @@
 package com.robustcode.delivery.auth.service;
 
+import com.robustcode.delivery.common.exception.BusinessRuleException;
+import com.robustcode.delivery.common.exception.ConflictException;
+import com.robustcode.delivery.common.exception.NotFoundException;
+
 import com.robustcode.delivery.auth.dto.LoginRequest;
 import com.robustcode.delivery.auth.dto.LoginResponse;
 import com.robustcode.delivery.auth.dto.RegisterRequest;
@@ -21,6 +25,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.EnumSet;
+import java.util.Set;
 
 
 @Service
@@ -46,18 +53,38 @@ public class AuthService {
 
 
 
+    /**
+     * Roles that may be self-assigned through the public signup endpoint.
+     * ADMIN, DISPATCHER and RESTAURANT accounts are created by an admin only.
+     */
+    private static final Set<User.Role> PUBLIC_SIGNUP_ROLES = EnumSet.of(
+            User.Role.DRIVER,
+            User.Role.CUSTOMER
+    );
+
+    /**
+     * Public signup. DRIVER accounts are created disabled and must be
+     * approved by an admin (PATCH /api/admin/users/{id}/enable) before login.
+     */
     public User register(RegisterRequest request) {
 
+        if (request.role() == null || !PUBLIC_SIGNUP_ROLES.contains(request.role())) {
+            throw new BusinessRuleException(
+                    "Public registration is only allowed for roles DRIVER and CUSTOMER"
+            );
+        }
 
         if (userRepository.existsByEmail(request.email())) {
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Email already exists"
             );
 
         }
 
 
+
+        boolean requiresApproval = request.role() == User.Role.DRIVER;
 
         User user = User.builder()
 
@@ -75,7 +102,7 @@ public class AuthService {
 
                 .role(request.role())
 
-                .enabled(true)
+                .enabled(!requiresApproval)
 
                 .build();
 
@@ -102,17 +129,17 @@ public class AuthService {
         String vehiclePlate = sanitizeValue(request.vehiclePlate());
 
         if (phoneNumber == null || vehicleType == null || vehiclePlate == null) {
-            throw new RuntimeException(
+            throw new BusinessRuleException(
                     "Phone number, vehicle type and vehicle plate are required for DRIVER registration"
             );
         }
 
         if (driverRepository.existsByUser(user)) {
-            throw new RuntimeException("Driver profile already exists");
+            throw new ConflictException("Driver profile already exists");
         }
 
         if (vehicleRepository.existsByPlateNumber(vehiclePlate)) {
-            throw new RuntimeException("Vehicle plate already exists");
+            throw new ConflictException("Vehicle plate already exists");
         }
 
         Vehicle vehicle = Vehicle.builder()
@@ -147,13 +174,16 @@ public class AuthService {
 
     }
 
+    /**
+     * ADMIN only: onboard a restaurant together with its RESTAURANT account.
+     */
     public User registerRestaurant(
             RegisterRestaurantRequest request
     ) {
 
         if(userRepository.existsByEmail(request.adminEmail())) {
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Admin email already exists"
             );
 
@@ -161,7 +191,7 @@ public class AuthService {
 
         if (restaurantRepository.existsByEmail(request.restaurantEmail())) {
 
-            throw new RuntimeException(
+            throw new ConflictException(
                     "Restaurant email already exists"
             );
 
@@ -245,7 +275,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.email())
 
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new NotFoundException(
                                 "User not found"
                         )
                 );
